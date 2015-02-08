@@ -291,7 +291,10 @@ exampleApplyEpsilonReduction1 =
   ]
   
 ---------------------------------------------------------------------------------
+-- An Imperative Language (IMP) and Its Compilation into Meta Lambda Calculus
+--------------------------------------------------------------------------------- 
 
+-- (Pure) Expressions
 data Expr = 
     NumVar Name
   | Const Int
@@ -299,11 +302,13 @@ data Expr =
   | Minus Expr Expr
     deriving Show
              
-data PExpr =              
+-- Procedure Expressions
+data PExpr =             
     ProcVar Name
   | Proc [Command]
     deriving Show
     
+-- Procedural Statements (or Commands)
 data Command = 
     Assign Name Expr 
   | ProcAssign Name PExpr 
@@ -317,6 +322,7 @@ type NumVars  = [Name]
 type ProcVars = [Name]
 
 
+-- Compilation
 compileExpr :: Expr -> Term
 compileExpr (NumVar v) = var v
 compileExpr (Const n) 
@@ -358,8 +364,7 @@ compileComm (Local pe xs zs) =
   App 2 (local xs zs) (compilePExpr pe)
   
 
-
---
+-- Library for the use in the compilation
 
 {- zero = \s z -> z -}
 zero = lam "s" (lam "z" (var "z"))
@@ -478,20 +483,8 @@ export xs zs = lam "e" (lam "r" m)
 
 ---------------------------------------------------------------------------------
 
-{- Section 4.3 -}
-        
--- L = (\p -> (unblock @2 p)) (block @2 (n (unblock @2 p)))
-exampleL = 
-  app 
-  (lam "p" 
-   (App 2 unblock (var "p"))) 
-  (App 2 
-   block 
-   (app 
-    (var "n") 
-    (App 2 unblock (var "p"))))
-  
-{- To show L => M =>* n M =>* n (n M) ...
+{- To Show L => M =>* n M =>* n (n M) ... as in Section 4.3 
+   where L and M are represented by exampleL and exampleL1 in the following.
 
    exampleL 
    => exampleL1 
@@ -503,7 +496,19 @@ exampleL =
    =  n exampleL1 
 -}
 
--- betaReduce exampleL
+-- L = (\p -> (unblock @2 p)) (block @2 (n (unblock @2 p)))
+exampleL = 
+  app 
+  (lam "p" 
+   (App 2 unblock (var "p"))) 
+  (App 2 
+   block 
+   (app 
+    (var "n") 
+    (App 2 unblock (var "p"))))
+  
+
+-- betaReduce exampleL => exampleL1
 exampleL1 = 
   App 2 
   (Lam "Z" 2 (App 1 (Var "Z" 0 [Push "p" 1 (App 2 (Lam "Y" 2 (Lam "x" 1 (App 2 (Var "x" 0 [] 1) (Var "Y" 0 [] 2)))) (App 1 (Var "n" 0 [] 1) (App 2 (Lam "Z" 2 (App 1 (Var "Z" 0 [] 2) (Lam "Y" 2 (Var "Y" 0 [] 2)))) (Var "p" 0 [] 1))))] 2) (Lam "Y" 2 (Var "Y" 0 [Push "p" 1 (App 2 (Lam "Y" 2 (Lam "x" 1 (App 2 (Var "x" 0 [] 1) (Var "Y" 0 [] 2)))) (App 1 (Var "n" 0 [] 1) (App 2 (Lam "Z" 2 (App 1 (Var "Z" 0 [] 2) (Lam "Y" 2 (Var "Y" 0 [] 2)))) (Var "p" 0 [] 1))))] 2)))) 
@@ -521,7 +526,7 @@ exampleL1' =
   where subst = [Push "p" 1 (App 2 block (App 1 (var "n") (App 2 unblock (Var "p" 0 [] 1))))]
   
   
--- exampleL2 = betaReduce exampleL1  
+-- betaReduce exampleL1 => exampleL2
 exampleL2 = exampleFL2 exampleL3
   
   
@@ -532,18 +537,18 @@ exampleFL2 = \m ->
 exampleL3 = App 2 (Lam "Y" 2 (Lam "x" 1 (App 2 (Var "x" 0 [] 1) (Var "Y" 0 [] 2)))) (App 1 (Var "n" 0 [] 1) (App 2 (Lam "Z" 2 (App 1 (Var "Z" 0 [] 2) (Lam "Y" 2 (Var "Y" 0 [] 2)))) (Var "p" 0 [] 1)))  
   
 
--- exampleL5 = betaReduce exampleL2
+-- betaReduce exampleL2 => exampleL5
 -- where exampleL4 is a beta-reduced term of the subterm of exampleL2
 exampleL4 = 
   Lam "x" 1 (App 2 (Var "x" 0 [] 1) (App 1 (Var "n" 0 [] 1) (App 2 (Lam "Z" 2 (App 1 (Var "Z" 0 [] 2) (Lam "Y" 2 (Var "Y" 0 [] 2)))) (Var "p" 0 [] 1))))
 
 exampleL5 = exampleFL2 exampleL4
 
--- exampleL6 = betaReduce exampleL5
+-- betaReduce exampleL5 => exampleL6
 exampleL6 = 
   App 2 (Lam "Y" 2 (Var "Y" 0 [Push "p" 1 (App 2 (Lam "Y" 2 (Lam "x" 1 (App 2 (Var "x" 0 [] 1) (Var "Y" 0 [] 2)))) (App 1 (Var "n" 0 [] 1) (App 2 (Lam "Z" 2 (App 1 (Var "Z" 0 [] 2) (Lam "Y" 2 (Var "Y" 0 [] 2)))) (Var "p" 0 [] 1))))] 2)) (App 1 (Var "n" 0 [] 1) (App 2 (Lam "Z" 2 (App 1 (Var "Z" 0 [] 2) (Lam "Y" 2 (Var "Y" 0 [] 2)))) (Var "p" 0 [] 1)))
 
--- exampleL7 = betaReduce exampleL6
+-- betaReduce exampleL6 => exampleL7
 exampleL7 = 
   App 1 (Var "n" 0 [] 1) exampleL8
   
@@ -552,7 +557,6 @@ exampleL8 =
   
   
 {- exampleL1 == exampleL8 !!! -}
-
 
 ---------------------------------------------------------------------------------
 
